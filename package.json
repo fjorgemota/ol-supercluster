@@ -24,7 +24,7 @@
     "cluster"
   ],
   "author": "Fernando Jorge Mota <contato@fjorgemota.com>",
-  "license": "MIT",
+  "license": "BSD-2-Clause",
   "bugs": {
     "url": "https://github.com/fjorgemota/ol-supercluster/issues"
   },
