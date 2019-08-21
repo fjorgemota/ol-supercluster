@@ -22,9 +22,11 @@ import { GeoJsonProperties } from 'geojson';
  * @property {import("ol/source/Source").AttributionLike} [attributions] Attributions.
  * @property {import("ol/view/View").View} [view] View of the map.
  * @property {number} [radius=60] Radius in pixels between clusters.
- * @property {function(Feature):GeoJSON.Feature} [geometryFunction]
+ * @property {boolean} [onDemandMode=false] Defines if the features leaves should be 
+ * processed while detecting clusters or not
+ * @property {function(Feature):GeoJSON.Feature} [geojsonFunction]
  * Function that takes an {@link module:ol/Feature} as argument and returns an
- * {@link module:GeoJSON/Feature} as input for SuperCluster based on the feature. When a
+ * {@link module:Supercluster.Point<P>} as input for SuperCluster based on the feature. When a
  * feature should not be considered for clustering, the function should return
  * `null`. The default, which works when the underyling source contains point
  * features only, is
@@ -42,21 +44,21 @@ import { GeoJsonProperties } from 'geojson';
  * @classdesc
  * Layer source to cluster vector data. Works out of the box with point
  * geometries. For other geometry types, or if not all geometries should be
- * considered for clustering, a custom `geometryFunction` can be defined.
+ * considered for clustering, a custom `geojsonFunction` can be defined.
  * @api
  */
 class SuperCluster<P extends GeoJsonProperties> extends VectorSource {
-  protected resolution?: number;
-  protected extent?:Extent;
-  protected projection?:Projection;
-  protected view:View;
-  protected radius: number;
-  protected fastMode: boolean;
-  protected features : Feature[];
+  protected resolution_?: number;
+  protected extent_?:Extent;
+  protected projection_?:Projection;
+  protected view_:View;
+  protected radius_: number;
+  protected onDemandMode_: boolean;
+  protected features_ : Feature[];
   protected cluster_? : Supercluster<P>;
   protected clusterFeatures_: Feature[];
-  protected geometryFunction : (feature: Feature) => Supercluster.PointFeature<P>;
-  protected source: VectorSource;
+  protected geojsonFunction_ : (feature: Feature) => Supercluster.PointFeature<P>;
+  protected source_: VectorSource;
 
   /**
    * @param {Options} options Cluster options.
@@ -71,46 +73,46 @@ class SuperCluster<P extends GeoJsonProperties> extends VectorSource {
      * @type {number|undefined}
      * @protected
      */
-    this.resolution = undefined;
+    this.resolution_ = undefined;
 
     /**
      * @type {import('ol/extent').Extent|undefined}
      * @protected 
      */
-    this.extent = undefined;
+    this.extent_ = undefined;
 
 
     /**
      * @type {import('ol/proj').ProjectionLike|undefined}
      * @protected 
      */
-    this.projection = undefined;
+    this.projection_ = undefined;
 
 
     /**
      * @type {import("ol/view/View").View}
      * @protected
      */
-    this.view = options.view;
+    this.view_ = options.view;
 
     /**
      * @type {number}
      * @protected
      */
-    this.radius = options.radius !== undefined ? options.radius : 60;
+    this.radius_ = options.radius !== undefined ? options.radius : 60;
 
 
     /**
      * @type {boolean}
      * @protected
      */
-    this.fastMode = options.fastMode !== undefined ? options.fastMode : false;
+    this.onDemandMode_ = options.onDemandMode !== undefined ? options.onDemandMode : false;
 
     /**
      * @type {Array<Feature>}
      * @protected
      */
-    this.features = [];
+    this.features_ = [];
 
     /**
      * @type {SuperCluster|undefined}
@@ -129,10 +131,10 @@ class SuperCluster<P extends GeoJsonProperties> extends VectorSource {
      * @return {GeoJSON.Feature} Cluster calculation point.
      * @protected
      */
-    this.geometryFunction = options.geometryFunction || function(feature : Feature) :  Supercluster.PointFeature<P> {
+    this.geojsonFunction_ = options.geojsonFunction || function(feature : Feature) :  Supercluster.PointFeature<P> {
       const geometry = /** @type {Point} */ (feature.getGeometry()) as Point;
       assert(geometry.getType() == GeometryType.POINT,
-        10); // The default `geometryFunction` can only handle `Point` geometries
+        10); // The default `geojsonFunction` can only handle `Point` geometries
       return {
         "type": "Feature",
         "properties":  null,
@@ -147,9 +149,9 @@ class SuperCluster<P extends GeoJsonProperties> extends VectorSource {
      * @type {VectorSource}
      * @protected
      */
-    this.source = options.source;
+    this.source_ = options.source;
 
-    listen(this.source, EventType.CHANGE, this.refresh, this);
+    listen(this.source_, EventType.CHANGE, this.refresh, this);
   }
 
   /**
@@ -158,7 +160,7 @@ class SuperCluster<P extends GeoJsonProperties> extends VectorSource {
    * @api
    */
   getRadius() {
-    return this.radius;
+    return this.radius_;
   }
 
   /**
@@ -167,21 +169,21 @@ class SuperCluster<P extends GeoJsonProperties> extends VectorSource {
    * @api
    */
   getSource() {
-    return this.source;
+    return this.source_;
   }
 
   /**
    * @inheritDoc
    */
   loadFeatures(extent: Extent, resolution: number, projection: Projection) {
-    this.source.loadFeatures(extent, resolution, projection);
-    if (resolution !== this.resolution || !equals(extent, this.extent) || !equivalent(projection, this.projection)) {
+    this.source_.loadFeatures(extent, resolution, projection);
+    if (resolution !== this.resolution_ || !equals(extent, this.extent_) || !equivalent(projection, this.projection_)) {
       this.clear();
-      this.extent = extent;
-      this.projection = projection;
-      this.resolution = resolution;
-      this.cluster(false);
-      this.addFeatures(this.features);
+      this.extent_ = extent;
+      this.projection_ = projection;
+      this.resolution_ = resolution;
+      this.processCluster_(false);
+      this.addFeatures(this.features_);
     }
   }
 
@@ -191,7 +193,7 @@ class SuperCluster<P extends GeoJsonProperties> extends VectorSource {
    * @api
    */
   setRadius(radius : number) {
-    this.radius = radius;
+    this.radius_ = radius;
     this.refresh();
   }
 
@@ -201,8 +203,8 @@ class SuperCluster<P extends GeoJsonProperties> extends VectorSource {
    */
   refresh() {
     this.clear();
-    this.cluster(true);
-    this.addFeatures(this.features);
+    this.processCluster_(true);
+    this.addFeatures(this.features_);
     super.refresh();
     return true;
   }
@@ -211,25 +213,25 @@ class SuperCluster<P extends GeoJsonProperties> extends VectorSource {
    * @argument {boolean} force Force creation of new JSON
    * @protected
    */
-  cluster(force : boolean) {
-    if (this.resolution === undefined || this.features === undefined) {
+  protected processCluster_(force : boolean) {
+    if (this.resolution_ === undefined || this.features_ === undefined) {
       return;
     }
-    this.features.length = 0;
-    const features = this.source.getFeatures();
+    this.features_.length = 0;
+    const features = this.source_.getFeatures();
     if (force || !this.cluster_) {
-        let geoJsonFeatures =  features.map(this.geometryFunction);
+        let geoJsonFeatures =  features.map(this.geojsonFunction_);
         let clusterFeatures = geoJsonFeatures.map(addIndexToFeature).filter(filterFeature);
         this.cluster_ = new Supercluster<P>({
-            radius: this.radius,
-            maxZoom: this.view.getMaxZoom(),
-            minZoom: this.view.getMinZoom()
+            radius: this.radius_,
+            maxZoom: this.view_.getMaxZoom(),
+            minZoom: this.view_.getMinZoom()
         });
         this.clusterFeatures_ = features;
         this.cluster_.load(clusterFeatures);
     }
-    let bbox = transformExtent(this.extent, this.projection, "EPSG:4326") as GeoJSON.BBox;
-    let zoom = this.view.getZoomForResolution(this.resolution);
+    let bbox = transformExtent(this.extent_, this.projection_, "EPSG:4326") as GeoJSON.BBox;
+    let zoom = this.view_.getZoomForResolution(this.resolution_);
     let result = this.cluster_.getClusters(bbox, zoom);
     for (let feature of result) {
         let cluster = new Feature(new Point(fromLonLat(feature.geometry.coordinates)));
@@ -238,7 +240,7 @@ class SuperCluster<P extends GeoJsonProperties> extends VectorSource {
         if (cluster.get('cluster')) {
             cluster.set('cluster_id', feature.properties.cluster_id);
         } 
-        if (!this.fastMode) {
+        if (!this.onDemandMode_) {
             let children : Feature[] = [features[feature.properties.index]];
             if (isCluster) {
               children = this.getFeaturesForCluster(cluster);
@@ -247,7 +249,7 @@ class SuperCluster<P extends GeoJsonProperties> extends VectorSource {
         } else if (!isCluster) {
             cluster = features[feature.properties.index];
         }
-        this.features.push(cluster);
+        this.features_.push(cluster);
     }
   }
 
@@ -285,7 +287,7 @@ class SuperCluster<P extends GeoJsonProperties> extends VectorSource {
    */
   getClusterExpansionZoom(feature : Feature) : number {
     if (!feature.get('cluster') || !this.cluster_) {
-      return this.view.getZoom();
+      return this.view_.getZoom();
     }
     return this.cluster_.getClusterExpansionZoom(feature.get('cluster_id'));
   }
