@@ -239,7 +239,11 @@ class SuperCluster<P extends GeoJsonProperties> extends VectorSource {
             cluster.set('cluster_id', feature.properties.cluster_id);
         } 
         if (!this.fastMode) {
-            cluster.set('features', this.getFeaturesForCluster(cluster));
+            if (isCluster) {
+              cluster.set('features', this.getFeaturesForCluster(cluster));
+            } else {
+              cluster.set('features', [features[feature.properties.index]]);
+            }
         } else if (!isCluster) {
             cluster = features[feature.properties.index];
         }
