@@ -1,11 +1,11 @@
 {
   "name": "ol-supercluster",
-  "version": "0.0.3",
+  "version": "0.1.0",
   "description": "OpenLayers's Cluster Source that uses SuperCluster to calculate clusters",
   "source": "src/ol.supercluster.ts",
   "main": "dist/ol-supercluster.js",
   "module": "dist/ol-supercluster.modern.js",
-  "types": "dist/ol-supercluster.d.ts", 
+  "types": "dist/ol-supercluster.d.ts",
   "minify": {
     "regex": "_$"
   },
