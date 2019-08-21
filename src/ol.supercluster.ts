@@ -54,7 +54,7 @@ class SuperCluster<P extends GeoJsonProperties> extends VectorSource {
   protected fastMode: boolean;
   protected features : Feature[];
   protected cluster_? : Supercluster<P>;
-  protected clusterFeatures_: Supercluster.PointFeature<P>[];
+  protected clusterFeatures_: Feature[];
   protected geometryFunction : (feature: Feature) => Supercluster.PointFeature<P>;
   protected source: VectorSource;
 
