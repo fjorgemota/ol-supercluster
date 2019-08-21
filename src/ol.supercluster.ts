@@ -225,7 +225,7 @@ class SuperCluster<P extends GeoJsonProperties> extends VectorSource {
             maxZoom: this.view.getMaxZoom(),
             minZoom: this.view.getMinZoom()
         });
-        this.clusterFeatures_ = clusterFeatures;
+        this.clusterFeatures_ = features;
         this.cluster_.load(clusterFeatures);
     }
     let bbox = transformExtent(this.extent, this.projection, "EPSG:4326") as GeoJSON.BBox;
