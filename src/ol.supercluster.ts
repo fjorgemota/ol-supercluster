@@ -239,11 +239,11 @@ class SuperCluster<P extends GeoJsonProperties> extends VectorSource {
             cluster.set('cluster_id', feature.properties.cluster_id);
         } 
         if (!this.fastMode) {
+            let children : Feature[] = [features[feature.properties.index]];
             if (isCluster) {
-              cluster.set('features', this.getFeaturesForCluster(cluster));
-            } else {
-              cluster.set('features', [features[feature.properties.index]]);
-            }
+              children = this.getFeaturesForCluster(cluster);
+            } 
+            cluster.set('features', children);
         } else if (!isCluster) {
             cluster = features[feature.properties.index];
         }
@@ -252,12 +252,13 @@ class SuperCluster<P extends GeoJsonProperties> extends VectorSource {
   }
 
   /**
-   * Return all the features that are contained inside a cluster 
+   * Return all the features that are contained inside a cluster. 
+   * If the feature isn't a cluster, return the feature itself.
    * 
-   * @param {Feature} cluster The cluster to get features inside
+   * @param {Feature} feature The cluster to get features inside
    * @returns {Array<Feature>} The list of features inside the cluster
    */
-  getFeaturesForCluster(feature : Feature) {
+  getFeaturesForCluster(feature : Feature) : Feature[] {
       if (!feature.get('cluster') || !this.cluster_) {
         return [feature];
       }
@@ -273,6 +274,20 @@ class SuperCluster<P extends GeoJsonProperties> extends VectorSource {
       }
       indexes.clear();
       return resultFeatures;
+  }
+
+  /**
+   * Returns the zoom on which the cluster expands into several children 
+   * (useful for "click to zoom" feature) given the feature 
+   * 
+   * @param {Feature} feature The feature to get the zoom to expand into
+   * @returns {number} The zoom level to expand to
+   */
+  getClusterExpansionZoom(feature : Feature) : number {
+    if (!feature.get('cluster') || !this.cluster_) {
+      return this.view.getZoom();
+    }
+    return this.cluster_.getClusterExpansionZoom(feature.get('cluster_id'));
   }
 }
 
