@@ -224,14 +224,14 @@ class SuperCluster<P extends GeoJsonProperties> extends VectorSource {
         let clusterFeatures = geoJsonFeatures.map(addIndexToFeature).filter(filterFeature);
         this.cluster_ = new Supercluster<P>({
             radius: this.radius_,
-            maxZoom: this.view_.getMaxZoom(),
-            minZoom: this.view_.getMinZoom()
+            maxZoom: Math.round(this.view_.getMaxZoom()),
+            minZoom: Math.round(this.view_.getMinZoom())
         });
         this.clusterFeatures_ = features;
         this.cluster_.load(clusterFeatures);
     }
     let bbox = transformExtent(this.extent_, this.projection_, "EPSG:4326") as GeoJSON.BBox;
-    let zoom = this.view_.getZoomForResolution(this.resolution_);
+    let zoom = Math.round(this.view_.getZoomForResolution(this.resolution_));
     let result = this.cluster_.getClusters(bbox, zoom);
     for (let feature of result) {
         let cluster = new Feature(new Point(fromLonLat(feature.geometry.coordinates)));
