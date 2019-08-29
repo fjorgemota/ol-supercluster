@@ -205,7 +205,6 @@ class SuperCluster<P extends GeoJsonProperties> extends VectorSource {
     this.clear();
     this.processCluster_(true);
     this.addFeatures(this.features_);
-    super.refresh();
     return true;
   }
 
