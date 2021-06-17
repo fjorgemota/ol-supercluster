@@ -30,13 +30,13 @@
   },
   "homepage": "https://github.com/fjorgemota/ol-supercluster#readme",
   "devDependencies": {
-    "@types/ol": "^5.3.5",
+    "@types/ol": "^5.x || ^6.x",
     "@types/supercluster": "^5.0.1",
-    "microbundle": "^0.11.0",
-    "mocha": "^6.2.0"
+    "microbundle": "^0.13.3",
+    "mocha": "^9.0.0"
   },
   "peerDependencies": {
-    "ol": "^5.3.3"
+    "ol": "^5.x || ^6.x"
   },
   "dependencies": {
     "supercluster": "^6.0.2"
