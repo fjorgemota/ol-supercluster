@@ -5,7 +5,6 @@
 import {assert} from 'ol/asserts';
 import Supercluster from "supercluster";
 import {Feature, View} from 'ol';
-import GeometryType from 'ol/geom/GeometryType';
 import {listen} from 'ol/events';
 import EventType from 'ol/events/EventType';
 import {Geometry, Point} from 'ol/geom';
@@ -135,7 +134,7 @@ class SuperCluster<P extends GeoJsonProperties> extends VectorSource {
      */
     this.geojsonFunction_ = options.geojsonFunction ?? function(feature : Feature) :  Supercluster.PointFeature<P> {
       const geometry = /** @type {Point} */ (feature.getGeometry()) as Point;
-      assert(geometry.getType() == GeometryType.POINT,
+      assert(geometry.getType() == 'Point',
         10); // The default `geojsonFunction` can only handle `Point` geometries
       return {
         "type": "Feature",
